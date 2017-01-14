@@ -1,3 +1,6 @@
+; Keyboard Controls:
+; Escape Key = Quit
+
 format PE64 GUI 5.0
 entry start
 

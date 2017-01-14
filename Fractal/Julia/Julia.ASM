@@ -1,3 +1,9 @@
+; Keyboard Controls:
+; Escape Key = Quit
+
+; Mouse Controls:
+; Move Pointer = Change Julia Shape
+
 format PE64 GUI 5.0
 entry start
 

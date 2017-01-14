@@ -1,3 +1,11 @@
+; Keyboard Controls:
+; Escape Key = Quit
+
+; Mouse Controls:
+; Left Click = Zoom In
+; Right Click = Zoom Out
+; Move Pointer = Zoom In/Out Center
+
 format PE64 GUI 5.0
 entry start
 
