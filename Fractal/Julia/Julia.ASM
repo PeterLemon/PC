@@ -17,7 +17,7 @@ BPP = 4       ; Bytes Per Pixel
 section '.text' code readable executable
 
 start:
-  sub rsp,8
+  sub      rsp,8
 
   invoke   GetModuleHandle,NULL
   mov	   [hinstance],rax
