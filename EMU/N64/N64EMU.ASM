@@ -1,6 +1,8 @@
 format PE64 console
 entry start
 
+DEBUG = 1
+
 include 'win64a.inc'
 include 'opengl.inc'
 include 'console.inc'
@@ -257,7 +259,9 @@ proc WindowProc uses rbx rsi rdi, hwnd,wmsg,wparam,lparam
     invoke   ReleaseDC,[hwnd],[hdc]
     invoke   PostQuitMessage,0
 
-;    include 'debug.asm' ; Debug Console Printing
+if DEBUG
+    include 'debug.asm' ; Debug Console Printing
+end if
 
     ; Reset Console Text Attribute
     invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED ; HANDLE, Console Text Attribute
@@ -423,20 +427,30 @@ section '.data' data readable writeable
   HEXTEXT db '$'
   NUMTEXT: rept 32 {db 0}
 
-  ProgramError db 10,'ERROR:     '
-  ProgramUsage db 10,'USAGE:     '
-  ROMFile      db 10,'ROM FILE:  '
-  ROMTitle     db 10,'ROM TITLE: '
-  ROMStart     db 10,'ROM START: '
-  CPU_Register db 10,'CPU Register - '
-  CP1_Register db 10,'CP1 Register - '
+  ProgramError       db 10,'ERROR:     '
+  ProgramUsage       db 10,'USAGE:     '
+  ROMFile            db 10,'ROM FILE:  '
+  ROMTitle           db 10,'ROM TITLE: '
+  ROMStart           db 10,'ROM START: '
+  CPU_Registers_cstr db 10,'CPU Registers',10,0
+  CP1_Registers_cstr db 10,'CP1 Registers',10,0
 
 section '.idata' import data readable writeable
 
+if DEBUG
+  library kernel32,'KERNEL32.DLL',\
+	  user32,'USER32.DLL',\
+	  gdi32,'GDI32.DLL',\
+	  opengl32,'OPENGL32.DLL',\
+          msvcrt,'MSVCRT.DLL'
+
+  import msvcrt, printf, 'printf'
+else
   library kernel32,'KERNEL32.DLL',\
 	  user32,'USER32.DLL',\
 	  gdi32,'GDI32.DLL',\
 	  opengl32,'OPENGL32.DLL'
+end if
 
   include 'api/kernel32.inc'
   include 'api/user32.inc'
