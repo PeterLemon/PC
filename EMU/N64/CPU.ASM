@@ -1344,12 +1344,12 @@ CPU_RESERVED: ; Op Code: Reserved
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
 
 if DEBUG
-  mov edx, [CPU_PC]
-  mov eax, edx
-  and eax, $1FFFFFFF ; EBX &= MEM_MAP Mask
-  add rax, [MEM_MAP]
-  mov r8d, dword [rax-4]
-  bswap r8d
+  mov      edx,[CPU_PC]
+  mov      eax,edx
+  and      eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
+  add      rax,[MEM_MAP]
+  mov      r8d,dword [rax-4]
+  bswap    r8d
 
   cinvoke printf, <'Unknown opcode at PC $%08x: $%08x'>
 end if
