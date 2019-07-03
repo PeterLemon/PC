@@ -34,9 +34,9 @@ CPU_JUMP_TABLE:
   dq CPU_FUNCTION,CPU_REGIMM,CPU_J,	  CPU_JAL,     CPU_BEQ,     CPU_BNE,	 CPU_BLEZ,    CPU_BGTZ	   ; Op Code 00..07
   dq CPU_ADDI,	  CPU_ADDIU, CPU_SLTI,	  CPU_SLTIU,   CPU_ANDI,    CPU_ORI,	 CPU_XORI,    CPU_LUI	   ; Op Code 08..15
   dq CPU_RESERVED,CPU_COP1,  CPU_RESERVED,CPU_RESERVED,CPU_BEQL,    CPU_BNEL,	 CPU_BLEZL,   CPU_BGTZL    ; Op Code 16..23
-  dq CPU_DADDI,   CPU_DADDIU,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; Op Code 24..31
+  dq CPU_DADDI,   CPU_DADDIU,CPU_LDL,	  CPU_LDR,     CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; Op Code 24..31
   dq CPU_LB,	  CPU_LH,    CPU_LWL,	  CPU_LW,      CPU_LBU,     CPU_LHU,	 CPU_LWR,     CPU_LWU	   ; Op Code 32..39
-  dq CPU_SB,	  CPU_SH,    CPU_RESERVED,CPU_SW,      CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_CACHE    ; Op Code 40..47
+  dq CPU_SB,	  CPU_SH,    CPU_SWL,	  CPU_SW,      CPU_SDL,     CPU_SDR,	 CPU_SWR,     CPU_CACHE    ; Op Code 40..47
   dq CPU_RESERVED,CPU_LWC1,  CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_LDC1,	 CPU_RESERVED,CPU_LD	   ; Op Code 48..55
   dq CPU_RESERVED,CPU_SWC1,  CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_SDC1,	 CPU_RESERVED,CPU_SD	   ; Op Code 56..63
 
@@ -331,6 +331,34 @@ CPU_DADDIU: ; Op Code 25 - I-Instruction Format: DADDIU RT,RS,Immediate - Double
   adc	   rbx,rax	      ; RBX += RS (Unsigned Add)
   mov	   [rcx*8+CPU_R0],rbx ; RT = RBX
   jmp	   CPU_INST_EMU_END
+CPU_LDL: ; Op Code 26: I-Instruction Format: LDL RT,Offset(Base) - Load Doubleword Left
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Doubleword
+  mov	   rdx,[rbx+rax]
+  bswap    rdx
+  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
+  jmp	   CPU_INST_EMU_END
+CPU_LDR: ; Op Code 27: I-Instruction Format: LDR RT,Offset(Base) - Load Doubleword Right
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Doubleword
+  mov	   rdx,[rbx+rax]
+  bswap    rdx
+  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
+  jmp	   CPU_INST_EMU_END
 CPU_LB: ; Op Code 32: I-Instruction Format: LB RT,Offset(Base) - Load Byte Signed
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
   mov	   ecx,eax	      ; ECX = Instruction
@@ -476,7 +504,63 @@ CPU_SH: ; Op Code 41 - I-Instruction Format: SH RT,Offset(Base) - Store Halfword
   mov	   [rbx+rax+1],cl
   mov	   [rbx+rax+0],ch     ; [Immediate+RS] = RT Halfword (CX)
   jmp	   CPU_INST_EMU_END
+CPU_SWL: ; Op Code 42 - I-Instruction Format: SWL RT,Offset(Base) - Store Word Left
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Word
+  bswap    ecx
+  mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
+  jmp	   CPU_INST_EMU_END
 CPU_SW: ; Op Code 43 - I-Instruction Format: SW RT,Offset(Base) - Store Word
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Word
+  bswap    ecx
+  mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
+  jmp	   CPU_INST_EMU_END
+CPU_SDL: ; Op Code 44 - I-Instruction Format: SDL RT,Offset(Base) - Store Doubleword Left
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Doubleword
+  bswap    rcx
+  mov	   [rbx+rax],rcx      ; [Immediate+RS] = RT Doubleword (RCX)
+  jmp	   CPU_INST_EMU_END
+CPU_SDR: ; Op Code 45 - I-Instruction Format: SDR RT,Offset(Base) - Store Doubleword Right
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Doubleword
+  bswap    rcx
+  mov	   [rbx+rax],rcx      ; [Immediate+RS] = RT Doubleword (RCX)
+  jmp	   CPU_INST_EMU_END
+CPU_SWR: ; Op Code 46 - I-Instruction Format: SWR RT,Offset(Base) - Store Word Right
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
   mov	   ecx,eax	      ; ECX = Instruction
   shr	   ecx,16	      ; ECX >>= 16
@@ -1214,7 +1298,7 @@ CPU_DSRA32: ; Op Code 00:63 - R-Instruction Format + Function: DSRA32 RD,RT,SA -
 CPU_REGIMM_JUMP_TABLE:
   dq CPU_BLTZ,	  CPU_BGEZ,    CPU_BLTZL,   CPU_BGEZL,	 CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 00..07
   dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 08..15
-  dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 16..23
+  dq CPU_BLTZAL,  CPU_BGEZAL,  CPU_BLTZALL, CPU_BGEZALL, CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 16..23
   dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 24..31
 
 CPU_BLTZ: ; Op Code 01:00 - I-Instruction Format: BLTZ RS,Offset - Branch On Less Than Zero
@@ -1273,6 +1357,88 @@ CPU_BGEZL: ; Op Code 01:03 - I-Instruction Format: BGEZL RS,Offset - Branch On G
   mov	   [DELAY_SLOT],eax
   jmp	   CPU_INST_EMU       ; Execute Delay Slot
   CPU_BGEZL_LIKELY:
+  add	   [CPU_PC],4	      ; Program Counter += 4
+  jmp	   CPU_INST_EMU_END
+CPU_BLTZAL: ; Op Code 01:16 - I-Instruction Format: BLTZAL RS,Offset - Branch On Less Than Zero And Link
+  ; Store Link To RA (Instruction After Delay Slot)
+  mov	   rbx,0	; RBX = 0 (Zero-Extend 64-Bit)
+  mov	   ebx,[CPU_PC] ; EBX = PC
+  add	   rbx,4	; RBX += 4
+  movsxd   rbx,ebx	; Sign-Extend 64-Bit Result
+  mov	   [CPU_RA],rbx ; RA = RBX
+  movsx    ebx,ax	      ; EBX = Offset (Sign-Extended 16-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  mov	   rax,[rax*8+CPU_R0] ; RAX = RS
+  cmp	   rax,0	      ; Compare RS To 0
+  jge	   CPU_INST_EMU_END   ; IF (RS < 0) Set Delay Slot, ELSE Do Not Store Delay Slot
+  ; ELSE Store Delay Slot Program Counter Relative Offset Address
+  mov	   eax,[CPU_PC]       ; Delay Slot = CPU_PC + (Offset << 2)
+  shl	   ebx,2
+  add	   eax,ebx
+  mov	   [DELAY_SLOT],eax
+  jmp	   CPU_INST_EMU       ; Execute Delay Slot
+CPU_BGEZAL: ; Op Code 01:17 - I-Instruction Format: BGEZAL RS,Offset - Branch On Greater Than Or Equal To Zero And Link
+  ; Store Link To RA (Instruction After Delay Slot)
+  mov	   rbx,0	; RBX = 0 (Zero-Extend 64-Bit)
+  mov	   ebx,[CPU_PC] ; EBX = PC
+  add	   rbx,4	; RBX += 4
+  movsxd   rbx,ebx	; Sign-Extend 64-Bit Result
+  mov	   [CPU_RA],rbx ; RA = RBX
+  movsx    ebx,ax	      ; EBX = Offset (Sign-Extended 16-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  mov	   rax,[rax*8+CPU_R0] ; RAX = RS
+  cmp	   rax,0	      ; Compare RS To 0
+  jl	   CPU_INST_EMU_END   ; IF (RS >= 0) Set Delay Slot, ELSE Do Not Store Delay Slot
+  ; ELSE Store Delay Slot Program Counter Relative Offset Address
+  mov	   eax,[CPU_PC]       ; Delay Slot = CPU_PC + (Offset << 2)
+  shl	   ebx,2
+  add	   eax,ebx
+  mov	   [DELAY_SLOT],eax
+  jmp	   CPU_INST_EMU       ; Execute Delay Slot
+CPU_BLTZALL: ; Op Code 01:18 - I-Instruction Format: BLTZALL RS,Offset - Branch On Less Than Zero And Link Likely
+  ; Store Link To RA (Instruction After Delay Slot)
+  mov	   rbx,0	; RBX = 0 (Zero-Extend 64-Bit)
+  mov	   ebx,[CPU_PC] ; EBX = PC
+  add	   rbx,4	; RBX += 4
+  movsxd   rbx,ebx	; Sign-Extend 64-Bit Result
+  mov	   [CPU_RA],rbx ; RA = RBX
+  movsx    ebx,ax	      ; EBX = Offset (Sign-Extended 16-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  mov	   rax,[rax*8+CPU_R0] ; RAX = RS
+  cmp	   rax,0	      ; Compare RS To 0
+  jge	   CPU_BLTZALL_LIKELY ; IF (RS < 0) Set Delay Slot, ELSE Do Not Store Delay Slot, PC += 4
+  ; ELSE Store Delay Slot Program Counter Relative Offset Address
+  mov	   eax,[CPU_PC]       ; Delay Slot = CPU_PC + (Offset << 2)
+  shl	   ebx,2
+  add	   eax,ebx
+  mov	   [DELAY_SLOT],eax
+  jmp	   CPU_INST_EMU       ; Execute Delay Slot
+  CPU_BLTZALL_LIKELY:
+  add	   [CPU_PC],4	      ; Program Counter += 4
+  jmp	   CPU_INST_EMU_END
+CPU_BGEZALL: ; Op Code 01:19 - I-Instruction Format: BGEZALL RS,Offset - Branch On Greater Than Or Equal To Zero And Link Likely
+  ; Store Link To RA (Instruction After Delay Slot)
+  mov	   rbx,0	; RBX = 0 (Zero-Extend 64-Bit)
+  mov	   ebx,[CPU_PC] ; EBX = PC
+  add	   rbx,4	; RBX += 4
+  movsxd   rbx,ebx	; Sign-Extend 64-Bit Result
+  mov	   [CPU_RA],rbx ; RA = RBX
+  movsx    ebx,ax	      ; EBX = Offset (Sign-Extended 16-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  mov	   rax,[rax*8+CPU_R0] ; RAX = RS
+  cmp	   rax,0	      ; Compare RS To 0
+  jl	   CPU_BGEZALL_LIKELY ; IF (RS >= 0) Set Delay Slot, ELSE Do Not Store Delay Slot, PC += 4
+  ; ELSE Store Delay Slot Program Counter Relative Offset Address
+  mov	   eax,[CPU_PC]       ; Delay Slot = CPU_PC + (Offset << 2)
+  shl	   ebx,2
+  add	   eax,ebx
+  mov	   [DELAY_SLOT],eax
+  jmp	   CPU_INST_EMU       ; Execute Delay Slot
+  CPU_BGEZALL_LIKELY:
   add	   [CPU_PC],4	      ; Program Counter += 4
   jmp	   CPU_INST_EMU_END
 

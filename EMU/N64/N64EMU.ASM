@@ -305,6 +305,7 @@ section '.data' data readable writeable
   CP1_F29 dq 0 ; CP1 Register F29
   CP1_F30 dq 0 ; CP1 Register F30
   CP1_F31 dq 0 ; CP1 Register F31
+  CP1_FD  dq 0 ; CP1 Floating Point Double Convert
   CP1_FP  db 0 ; CP1 Floating Point Condition Code (Boolean)
 
 section '.idata' import data readable writeable
