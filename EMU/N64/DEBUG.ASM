@@ -79,4 +79,3 @@
 
   movzx    edx,[CP1_FP]
   cinvoke  printf,<'FP: $%02X',10>
-
