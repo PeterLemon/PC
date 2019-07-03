@@ -1338,22 +1338,16 @@ CPU_BGEZL: ; Op Code 01:03 - I-Instruction Format: BGEZL RS,Offset - Branch On G
   add	   [CPU_PC],4	      ; Program Counter += 4
   jmp	   CPU_INST_EMU_END
 
-CPU_RESERVED: ; Op Code: Reserved
+CPU_RESERVED: ; CPU Op Code: Reserved
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],ProgramError,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<10,'ERROR:     '>
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-
-if DEBUG
-  mov      edx,[CPU_PC]
-  mov      eax,edx
-  and      eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
-  add      rax,[MEM_MAP]
-  mov      r8d,dword [rax-4]
+  mov	   edx,[CPU_PC]
+  mov	   eax,edx
+  mov	   eax,[CPU_PC]
+  and	   eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
+  add	   rax,[MEM_MAP]
+  mov	   r8d,dword[rax-4]
   bswap    r8d
-
-  cinvoke printf, <'Unknown opcode at PC $%08x: $%08x'>
-end if
-
+  cinvoke  printf,<'Unknown CPU opcode at PC $%08X: $%08X'>
   jmp	   CPU_INST_EMU_END
-
-

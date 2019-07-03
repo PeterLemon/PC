@@ -930,7 +930,14 @@ CP1_BC1TL: ; CP1 BC Code 03 - I-Instruction Format: BC1TL Offset - Branch On FP 
 
 CP1_RESERVED: ; CP1 Op Code: Reserved
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],ProgramError,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<10,'ERROR:     '>
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],'RESERVED CP1 OP CODE',20,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  mov	   edx,[CPU_PC]
+  mov	   eax,edx
+  mov	   eax,[CPU_PC]
+  and	   eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
+  add	   rax,[MEM_MAP]
+  mov	   r8d,dword[rax-4]
+  bswap    r8d
+  cinvoke  printf,<'Unknown CP1 opcode at PC $%08X: $%08X'>
   jmp	   CPU_INST_EMU_END

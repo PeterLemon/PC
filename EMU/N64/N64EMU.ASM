@@ -1,7 +1,7 @@
 format PE64 console
 entry start
 
-DEBUG = 1
+DEBUG = 0
 
 include 'win64a.inc'
 include 'opengl.inc'
@@ -19,52 +19,44 @@ start:
 
   ; Print Program Title
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_BLUE+BACKGROUND_RED+COMMON_LVB_UNDERSCORE ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],'N64 Emulator by Peter Lemon (krom) 2019',39,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<'N64 Emulator by Peter Lemon (krom) 2019'>
 
   ; Command-Line Parameters
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_GREEN ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],ROMFile,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<10,'ROM FILE:  '>
   invoke   SetConsoleTextAttribute,[hcn],BACKGROUND_GREEN+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-  invoke   GetCommandLine ; RAX = Pointer To Command-Line String
-  mov	   rdx,rax	  ; RDX = Pointer To Command-Line String (Strip .EXE Name Length)
 
   ; Find Start Of Command-Line String Parameter (ROM File)
-  mov	   rbx,0 ; RBX = Space Byte Count
-  LoopCMD_START: ; Store Length Of 1st Command-Line String Parameter In Bytes To RBX
-    mov      cl,[rdx] ; CL = Text Byte
-    inc      rdx ; Pointer To Command-Line String++
-    inc      rbx ; Space Byte Count++
-    cmp      cl,$20	   ; Compare Text Byte (CL) To Space " " Character
-    jnz      LoopCMD_START ; IF (Text Byte != $20) Loop
-  inc	   rbx	   ; RBX = Length Of 1st Command-Line String Parameter In Bytes (Strip Space Byte From Length)
-  add	   rax,rbx ; RAX = Pointer To Command-Line String (Strip 1st Command-Line String Parameter)
-  mov	   rdx,rax ; RDX = Pointer To Command-Line String (Strip 1st Command-Line String Parameter)
+  invoke   GetCommandLine ; RAX = Pointer To Command-Line String
+  LoopCMD_START:
+  mov	   bl,[rax]	 ; BL = Text Byte
+  inc	   rax		 ; Pointer To Command-Line String++
+  cmp	   bl,' '	 ; Compare Text Byte (BL) To Space " " Character
+  jnz	   LoopCMD_START ; IF (Text Byte != $20) Loop
+  inc	   rax		 ; Pointer To Command-Line String++
+  mov	   rdx,rax	 ; RAX,RDX = Pointer To Command-Line String (Strip 1st Command-Line String Parameter)
 
   ; Find End Of Command-Line String Parameter (ROM File)
-  mov	   rbx,0 ; RBX = Zero Byte Count
-  ; Start Double Quote Check
-  mov	   cl,[rdx] ; CL = Text Byte
-  cmp	   cl,'"'
-  jnz	   LoopCMD_END
-  inc	   rax ; Pointer To Command-Line String++
-  inc	   rdx ; Pointer To Command-Line String++
-  LoopCMD_END: ; Store Length Of Command-Line String In Bytes To RBX
-    mov      cl,[rdx] ; CL = Text Byte
-    ; End Double Quote Check
-    cmp      cl,'"' ; Compare Text Byte (CL) To Double Quote  '"' Character
-    jnz      LoopCMD_END_DOUBLE_QUOTE ; IF (Text Byte != Double Quote Character) End
-    mov      cl,$00 ; ELSE Replace Double Quote Character With Zero Byte
-    mov      [rdx],cl ; Pointer To Command-Line String = CL
-    LoopCMD_END_DOUBLE_QUOTE:
-    ; Zero Byte Check
-    inc      rdx ; Pointer To Command-Line String++
-    inc      rbx ; Zero Byte Count++
-    cmp      cl,$00	 ; Compare Text Byte (CL) To Zero
-    jnz      LoopCMD_END ; IF (Text Byte != $00) Loop
-  dec	   rbx ; RBX = Length Of Command-Line String In Bytes (Strip Zero Byte From Length)
-  mov	   rdi,rax ; RDX = Pointer To Command-Line String (Strip 1st Command-Line String Parameter)
-
-  invoke   WriteFile,[hcn],rax,rbx,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  ; 1st Double Quote Check
+  mov	   bl,[rax]    ; BL = Text Byte
+  cmp	   bl,'"'      ; Compare Text Byte (BL) To Double Quote  '"' Character
+  jnz	   LoopCMD_END ; IF (Text Byte != Double Quote Character) End
+  inc	   rax	       ; Pointer To Command-Line String++
+  inc	   rdx	       ; Pointer To Command-Line String++
+  LoopCMD_END:
+  ; 2nd Double Quote Check
+  mov	   bl,[rax]    ; BL = Text Byte
+  cmp	   bl,'"'      ; Compare Text Byte (BL) To Double Quote  '"' Character
+  jnz	   LoopCMD_END_DOUBLE_QUOTE ; IF (Text Byte != Double Quote Character) End
+  mov	   bl,$00      ; ELSE Replace Double Quote Character With Zero Byte
+  mov	   [rax],bl    ; Pointer To Command-Line String = BL
+  LoopCMD_END_DOUBLE_QUOTE:
+  ; Zero Byte Check
+  inc	   rax	       ; Pointer To Command-Line String++
+  cmp	   bl,$00      ; Compare Text Byte (BL) To Zero
+  jnz	   LoopCMD_END ; IF (Text Byte != $00) Loop
+  mov	   rdi,rdx     ; RDX,RDI = Pointer To Command-Line String (Strip 1st Command-Line String Parameter)
+  cinvoke  printf,<'%s'>
 
   ; Check Command-Line String Parameter ROM File
   invoke   GetFileAttributes,rdi ; EAX = FILE_ATTRIBUTES
@@ -73,14 +65,14 @@ start:
   ; ELSE Print Error/Usage & Quit
   ; Print Error
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],ProgramError,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<10,'ERROR:     '>
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],'ROM FILE NOT FOUND',18,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<'ROM FILE NOT FOUND'>
   ; Print Usage
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_BLUE+BACKGROUND_GREEN ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],ProgramUsage,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<10,'USAGE:     '>
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_BLUE+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-  invoke   WriteFile,[hcn],'N64EMU.EXE ROM.N64',18,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+  cinvoke  printf,<'N64EMU.EXE ROM.N64'>
   ; Reset Console Text Attribute
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED ; HANDLE, Console Text Attribute
   invoke   ExitProcess,0
@@ -152,21 +144,19 @@ proc WindowProc uses rbx rsi rdi, hwnd,wmsg,wparam,lparam
 
     ; Print ROM Info
     invoke   SetConsoleTextAttribute,[hcn],BACKGROUND_BLUE+BACKGROUND_GREEN+BACKGROUND_RED ; HANDLE, Console Text Attribute
-    invoke   WriteFile,[hcn],ROMTitle,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+    cinvoke  printf,<10,'ROM TITLE: '>
     invoke   SetConsoleTextAttribute,[hcn],BACKGROUND_BLUE+BACKGROUND_GREEN+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-    mov      rax,CART_DOM1_ADDR2+32
-    add      rax,[MEM_MAP] ; RAX = ROM Address
-    invoke   WriteFile,[hcn],rax,27,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+    mov      rdx,CART_DOM1_ADDR2+32
+    add      rdx,[MEM_MAP] ; RDX = ROM Address
+    cinvoke  printf,<'%27s'>
 
     invoke   SetConsoleTextAttribute,[hcn],BACKGROUND_BLUE+BACKGROUND_GREEN+BACKGROUND_RED ; HANDLE, Console Text Attribute
-    invoke   WriteFile,[hcn],ROMStart,12,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
-    mov      rax,CART_DOM1_ADDR2+8
-    add      rax,[MEM_MAP] ; RAX = ROM Address
-    mov      rbx,NUMTEXT ; RBX = Text Buffer
-    mov      cx,4 ; CX = Loop Count
-    call     NUM2STRBE
+    cinvoke  printf,<10,'ROM START: '>
     invoke   SetConsoleTextAttribute,[hcn],BACKGROUND_BLUE+BACKGROUND_GREEN+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
-    invoke   WriteFile,[hcn],HEXTEXT,9,0,0 ; HANDLE, Buffer, Number Of Bytes To Write, Number Of Bytes Written, Overlapped
+    mov      rdx,[MEM_MAP]
+    mov      edx,[rdx+CART_DOM1_ADDR2+8] ; EDX = ROM Data (Little-Endian 32-Bit)
+    bswap    edx
+    cinvoke  printf,<'$%08X'>
 
     ; Copy 1MB Of ROM To MEM_MAP (Dirty Hack Before PIF Data Emulation)
     mov      rax,CART_DOM1_ADDR2
@@ -272,66 +262,10 @@ endp
 include 'cpu.asm' ; CPU Instruction Emulation
 include 'cp1.asm' ; CP1 Instruction Emulation (Coprocessor 1: FPU)
 
-NUM2STRBE: ; RAX = Value Address, RBX = Text Buffer Address, CX = Loop Count
-  mov	   dl,[rax] ; DL = Value
-  mov	   dh,dl ; DH = Value
-  and	   dl,$F ; DL = Value Lo
-  shr	   dh,4 ; DH = Value Hi
-
-  cmp	   dl,10
-  jnge	   NUM2STRBELO
-  add	   dl,$07
-  NUM2STRBELO:
-  add	   dl,$30
-
-  cmp	   dh,10
-  jnge	   NUM2STRBEHI
-  add	   dh,$07
-  NUM2STRBEHI:
-  add	   dh,$30
-
-  mov	   [rbx+1],dl ; DL = Value
-  mov	   [rbx+0],dh ; DH = Value
-  inc	   rax ; RAX++ (Increment Value Address)
-  add	   rbx,2 ; RBX += 2 (Increment Text Buffer Address)
-  loopne   NUM2STRBE
-  ret
-
-NUM2STRLE: ; RAX = Value Address, RBX = Text Buffer Address, CX = Loop Count
-  add	   rbx,rcx
-  add	   rbx,rcx
-  sub	   rbx,2
-NUM2STRLELOOP:
-  mov	   dl,[rax] ; DL = Value
-  mov	   dh,dl ; DH = Value
-  and	   dl,$F ; DL = Value Lo
-  shr	   dh,4 ; DH = Value Hi
-
-  cmp	   dl,10
-  jnge	   NUM2STRLELO
-  add	   dl,$07
-  NUM2STRLELO:
-  add	   dl,$30
-
-  cmp	   dh,10
-  jnge	   NUM2STRLEHI
-  add	   dh,$07
-  NUM2STRLEHI:
-  add	   dh,$30
-
-  mov	   [rbx+1],dl ; DL = Value
-  mov	   [rbx+0],dh ; DH = Value
-  inc	   rax ; RAX++ (Increment Value Address)
-  sub	   rbx,2 ; RBX -= 2 (Decrement Text Buffer Address)
-  loopne   NUM2STRLELOOP
-  ret
-
 section '.data' data readable writeable
 
   _title db 'N64 Emulator: VI Output',0
   _class db 'FASMN64EMU',0
-
-  theta GLfloat 0.6
 
   wc WNDCLASS 0,WindowProc,0,0,NULL,NULL,NULL,NULL,NULL,_class
 
@@ -424,33 +358,15 @@ section '.data' data readable writeable
   CP1_F31 dq 0 ; CP1 Register F31
   CP1_FP  db 0 ; CP1 Floating Point Condition Code (Boolean)
 
-  HEXTEXT db '$'
-  NUMTEXT: rept 32 {db 0}
-
-  ProgramError       db 10,'ERROR:     '
-  ProgramUsage       db 10,'USAGE:     '
-  ROMFile            db 10,'ROM FILE:  '
-  ROMTitle           db 10,'ROM TITLE: '
-  ROMStart           db 10,'ROM START: '
-  CPU_Registers_cstr db 10,'CPU Registers',10,0
-  CP1_Registers_cstr db 10,'CP1 Registers',10,0
-
 section '.idata' import data readable writeable
 
-if DEBUG
   library kernel32,'KERNEL32.DLL',\
 	  user32,'USER32.DLL',\
 	  gdi32,'GDI32.DLL',\
 	  opengl32,'OPENGL32.DLL',\
-          msvcrt,'MSVCRT.DLL'
+	  msvcrt,'MSVCRT.DLL'
 
-  import msvcrt, printf, 'printf'
-else
-  library kernel32,'KERNEL32.DLL',\
-	  user32,'USER32.DLL',\
-	  gdi32,'GDI32.DLL',\
-	  opengl32,'OPENGL32.DLL'
-end if
+  import  msvcrt,printf,'printf'
 
   include 'api/kernel32.inc'
   include 'api/user32.inc'
