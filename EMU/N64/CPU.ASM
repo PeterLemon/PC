@@ -37,8 +37,8 @@ CPU_JUMP_TABLE:
   dq CPU_DADDI,   CPU_DADDIU,CPU_LDL,	  CPU_LDR,     CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; Op Code 24..31
   dq CPU_LB,	  CPU_LH,    CPU_LWL,	  CPU_LW,      CPU_LBU,     CPU_LHU,	 CPU_LWR,     CPU_LWU	   ; Op Code 32..39
   dq CPU_SB,	  CPU_SH,    CPU_SWL,	  CPU_SW,      CPU_SDL,     CPU_SDR,	 CPU_SWR,     CPU_CACHE    ; Op Code 40..47
-  dq CPU_RESERVED,CPU_LWC1,  CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_LDC1,	 CPU_RESERVED,CPU_LD	   ; Op Code 48..55
-  dq CPU_RESERVED,CPU_SWC1,  CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_SDC1,	 CPU_RESERVED,CPU_SD	   ; Op Code 56..63
+  dq CPU_LL,	  CPU_LWC1,  CPU_RESERVED,CPU_RESERVED,CPU_LLD,     CPU_LDC1,	 CPU_RESERVED,CPU_LD	   ; Op Code 48..55
+  dq CPU_SC,	  CPU_SWC1,  CPU_RESERVED,CPU_RESERVED,CPU_SCD,     CPU_SDC1,	 CPU_RESERVED,CPU_SD	   ; Op Code 56..63
 
 CPU_FUNCTION: ; Op Code 00 - R-Instruction Format: Function Code
   mov	   ebx,eax ; EBX = Instruction
@@ -576,6 +576,22 @@ CPU_SWR: ; Op Code 46 - I-Instruction Format: SWR RT,Offset(Base) - Store Word R
   jmp	   CPU_INST_EMU_END
 CPU_CACHE: ; Op Code 47 - I-Instruction Format: CACHE OP,Offset(Base) - Cache
   jmp	   CPU_INST_EMU_END
+CPU_LL: ; Op Code 48 - I-Instruction Format: LL RT,Offset(Base) - Load Linked Word
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  mov	   [CP0_LLAddr],ebx   ; LLAddr = RS + Offset
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Signed Word
+  mov	   edx,[rbx+rax]
+  bswap    edx
+  movsxd   rdx,edx	      ; Sign-Extend 32-Bit Result
+  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Signed Word (RDX)
+  jmp	   CPU_INST_EMU_END
 CPU_LWC1: ; Op Code 49: I-Instruction Format: LWC1 FT,Offset(Base) - Load Word To Floating-Point
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
   mov	   ecx,eax	      ; ECX = Instruction
@@ -590,6 +606,21 @@ CPU_LWC1: ; Op Code 49: I-Instruction Format: LWC1 FT,Offset(Base) - Load Word T
   mov	   edx,[rbx+rax]
   bswap    edx
   mov	   [rcx*8+CP1_F0],rdx ; FT = [Immediate+RS] Unsigned Word (RDX)
+  jmp	   CPU_INST_EMU_END
+CPU_LLD: ; Op Code 52: I-Instruction Format: LLD RT,Offset(Base) - Load Linked Doubleword
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  mov	   [CP0_LLAddr],ebx   ; LLAddr = RS + Offset
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Doubleword
+  mov	   rdx,[rbx+rax]
+  bswap    rdx
+  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
   jmp	   CPU_INST_EMU_END
 CPU_LDC1: ; Op Code 53: I-Instruction Format: LDC1 FT,Offset(Base) - Load Doubleword To Floating-Point
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -619,6 +650,20 @@ CPU_LD: ; Op Code 55: I-Instruction Format: LD RT,Offset(Base) - Load Doubleword
   bswap    rdx
   mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
   jmp	   CPU_INST_EMU_END
+CPU_SC: ; Op Code 56 - I-Instruction Format: SC RT,Offset(Base) - Store Conditional Word
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Word
+  bswap    ecx
+  mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
+  jmp	   CPU_INST_EMU_END
 CPU_SWC1: ; Op Code 57 - I-Instruction Format: SWC1 FT,Offset(Base) - Store Word From Floating-Point
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
   mov	   ecx,eax	      ; ECX = Instruction
@@ -632,6 +677,20 @@ CPU_SWC1: ; Op Code 57 - I-Instruction Format: SWC1 FT,Offset(Base) - Store Word
   mov	   rax,[MEM_MAP]      ; Store Word
   bswap    ecx
   mov	   [rbx+rax],ecx      ; [Immediate+RS] = FT Word (ECX)
+  jmp	   CPU_INST_EMU_END
+CPU_SCD: ; Op Code 60 - I-Instruction Format: SCD RT,Offset(Base) - Store Conditional Doubleword
+  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
+  mov	   ecx,eax	      ; ECX = Instruction
+  shr	   ecx,16	      ; ECX >>= 16
+  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  shr	   eax,21	      ; EAX >>= 21
+  and	   eax,$1F	      ; EAX = RS (5-Bit)
+  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
+  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
+  mov	   rax,[MEM_MAP]      ; Store Doubleword
+  bswap    rcx
+  mov	   [rbx+rax],rcx      ; [Immediate+RS] = RT Doubleword (RCX)
   jmp	   CPU_INST_EMU_END
 CPU_SDC1: ; Op Code 61 - I-Instruction Format: SDC1 FT,Offset(Base) - Store Doubleword From Floating-Point
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -669,7 +728,7 @@ CPU_FUNCTION_JUMP_TABLE:
   dq CPU_MULT,	  CPU_MULTU,   CPU_DIV,     CPU_DIVU,	 CPU_DMULT,   CPU_DMULTU,  CPU_DDIV,	CPU_DDIVU    ; Op Code 00:24..00:31
   dq CPU_ADD,	  CPU_ADDU,    CPU_SUB,     CPU_SUBU,	 CPU_AND,     CPU_OR,	   CPU_XOR,	CPU_NOR      ; Op Code 00:32..00:39
   dq CPU_RESERVED,CPU_RESERVED,CPU_SLT,     CPU_SLTU,	 CPU_DADD,    CPU_DADDU,   CPU_DSUB,	CPU_DSUBU    ; Op Code 00:40..00:47
-  dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; Op Code 00:48..00:55
+  dq CPU_TGE,	  CPU_TGEU,    CPU_TLT,     CPU_TLTU,	 CPU_TEQ,     CPU_RESERVED,CPU_TNE,	CPU_RESERVED ; Op Code 00:48..00:55
   dq CPU_DSLL,	  CPU_RESERVED,CPU_DSRL,    CPU_DSRA,	 CPU_DSLL32,  CPU_RESERVED,CPU_DSRL32,	CPU_DSRA32   ; Op Code 00:56..00:63
 
 CPU_SLL: ; Op Code 00:00 - R-Instruction Format + Function: SLL RD,RT,SA - Shift Word Left Logical
@@ -1213,6 +1272,18 @@ CPU_DSUBU: ; Op Code 00:47 - R-Instruction Format + Function: DSUBU RD,RS,RT - D
   sbb	   rax,rcx	      ; RAX += RT (Unsigned Sub)
   mov	   [rbx*8+CPU_R0],rax ; RD = RAX
   jmp	   CPU_INST_EMU_END
+CPU_TGE: ; Op Code 48 - I-Instruction Format: TGE RS,RT - Trap If Greater Or Equal
+  jmp	   CPU_INST_EMU_END
+CPU_TGEU: ; Op Code 49 - I-Instruction Format: TGEU RS,RT - Trap If Greater Or Equal Unsigned
+  jmp	   CPU_INST_EMU_END
+CPU_TLT: ; Op Code 50 - I-Instruction Format: TLT RS,RT - Trap If Less Than
+  jmp	   CPU_INST_EMU_END
+CPU_TLTU: ; Op Code 51 - I-Instruction Format: TLTU RS,RT - Trap If Less Than Unsigned
+  jmp	   CPU_INST_EMU_END
+CPU_TEQ: ; Op Code 52 - I-Instruction Format: TEQ RS,RT - Trap If Equal
+  jmp	   CPU_INST_EMU_END
+CPU_TNE: ; Op Code 54 - I-Instruction Format: TNE RS,RT - Trap If Not Equal
+  jmp	   CPU_INST_EMU_END
 CPU_DSLL: ; Op Code 00:56 - R-Instruction Format + Function: DSLL RD,RT,SA - Doubleword Shift Left Logical
   mov	   ecx,eax	      ; ECX = Instruction
   shr	   ecx,6	      ; ECX >>= 6
@@ -1297,7 +1368,7 @@ CPU_DSRA32: ; Op Code 00:63 - R-Instruction Format + Function: DSRA32 RD,RT,SA -
 
 CPU_REGIMM_JUMP_TABLE:
   dq CPU_BLTZ,	  CPU_BGEZ,    CPU_BLTZL,   CPU_BGEZL,	 CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 00..07
-  dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 08..15
+  dq CPU_TGEI,	  CPU_TGEIU,   CPU_TLTI,    CPU_TLTIU,	 CPU_TEQI,    CPU_RESERVED,CPU_TNEI,	CPU_RESERVED ; RT Code 08..15
   dq CPU_BLTZAL,  CPU_BGEZAL,  CPU_BLTZALL, CPU_BGEZALL, CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 16..23
   dq CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED,CPU_RESERVED ; RT Code 24..31
 
@@ -1358,6 +1429,18 @@ CPU_BGEZL: ; Op Code 01:03 - I-Instruction Format: BGEZL RS,Offset - Branch On G
   jmp	   CPU_INST_EMU       ; Execute Delay Slot
   CPU_BGEZL_LIKELY:
   add	   [CPU_PC],4	      ; Program Counter += 4
+  jmp	   CPU_INST_EMU_END
+CPU_TGEI: ; Op Code 01:08 - I-Instruction Format: TGEI RS,Immediate - Trap If Greater Or Equal Immediate
+  jmp	   CPU_INST_EMU_END
+CPU_TGEIU: ; Op Code 01:09 - I-Instruction Format: TGEIU RS,Immediate - Trap If Greater Or Equal Immediate Unsigned
+  jmp	   CPU_INST_EMU_END
+CPU_TLTI: ; Op Code 01:10 - I-Instruction Format: TLTI RS,Immediate - Trap If Less Than Immediate
+  jmp	   CPU_INST_EMU_END
+CPU_TLTIU: ; Op Code 01:11 - I-Instruction Format: TLTIU RS,Immediate - Trap If Less Than Immediate Unsigned
+  jmp	   CPU_INST_EMU_END
+CPU_TEQI: ; Op Code 01:12 - I-Instruction Format: TEQI RS,Immediate - Trap If Equal Immediate
+  jmp	   CPU_INST_EMU_END
+CPU_TNEI: ; Op Code 01:14 - I-Instruction Format: TNEI RS,Immediate - Trap If Not Equal Immediate
   jmp	   CPU_INST_EMU_END
 CPU_BLTZAL: ; Op Code 01:16 - I-Instruction Format: BLTZAL RS,Offset - Branch On Less Than Zero And Link
   ; Store Link To RA (Instruction After Delay Slot)

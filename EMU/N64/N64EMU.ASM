@@ -237,40 +237,74 @@ section '.data' data readable writeable
 
   ; CPU Registers
   CPU_PC dd 0 ; CPU Register Program Counter
-  CPU_R0 dq 0 ; CPU Register R0
-  CPU_AT dq 0 ; CPU Register R1
-  CPU_V0 dq 0 ; CPU Register R2
-  CPU_V1 dq 0 ; CPU Register R3
-  CPU_A0 dq 0 ; CPU Register R4
-  CPU_A1 dq 0 ; CPU Register R5
-  CPU_A2 dq 0 ; CPU Register R6
-  CPU_A3 dq 0 ; CPU Register R7
-  CPU_T0 dq 0 ; CPU Register R8
-  CPU_T1 dq 0 ; CPU Register R9
-  CPU_T2 dq 0 ; CPU Register R10
-  CPU_T3 dq 0 ; CPU Register R11
-  CPU_T4 dq 0 ; CPU Register R12
-  CPU_T5 dq 0 ; CPU Register R13
-  CPU_T6 dq 0 ; CPU Register R14
-  CPU_T7 dq 0 ; CPU Register R15
-  CPU_S0 dq 0 ; CPU Register R16
-  CPU_S1 dq 0 ; CPU Register R17
-  CPU_S2 dq 0 ; CPU Register R18
-  CPU_S3 dq 0 ; CPU Register R19
-  CPU_S4 dq 0 ; CPU Register R20
-  CPU_S5 dq 0 ; CPU Register R21
-  CPU_S6 dq 0 ; CPU Register R22
-  CPU_S7 dq 0 ; CPU Register R23
-  CPU_T8 dq 0 ; CPU Register R24
-  CPU_T9 dq 0 ; CPU Register R25
-  CPU_K0 dq 0 ; CPU Register R26
-  CPU_K1 dq 0 ; CPU Register R27
-  CPU_GP dq 0 ; CPU Register R28
-  CPU_SP dq 0 ; CPU Register R29
-  CPU_S8 dq 0 ; CPU Register R30
-  CPU_RA dq 0 ; CPU Register R31
+  CPU_R0 dq 0 ; CPU Register R0/R0
+  CPU_AT dq 0 ; CPU Register R1/AT
+  CPU_V0 dq 0 ; CPU Register R2/V0
+  CPU_V1 dq 0 ; CPU Register R3/V1
+  CPU_A0 dq 0 ; CPU Register R4/A0
+  CPU_A1 dq 0 ; CPU Register R5/A1
+  CPU_A2 dq 0 ; CPU Register R6/A2
+  CPU_A3 dq 0 ; CPU Register R7/A3
+  CPU_T0 dq 0 ; CPU Register R8/T0
+  CPU_T1 dq 0 ; CPU Register R9/T1
+  CPU_T2 dq 0 ; CPU Register R10/T2
+  CPU_T3 dq 0 ; CPU Register R11/T3
+  CPU_T4 dq 0 ; CPU Register R12/T4
+  CPU_T5 dq 0 ; CPU Register R13/T5
+  CPU_T6 dq 0 ; CPU Register R14/T6
+  CPU_T7 dq 0 ; CPU Register R15/T7
+  CPU_S0 dq 0 ; CPU Register R16/S0
+  CPU_S1 dq 0 ; CPU Register R17/S1
+  CPU_S2 dq 0 ; CPU Register R18/S2
+  CPU_S3 dq 0 ; CPU Register R19/S3
+  CPU_S4 dq 0 ; CPU Register R20/S4
+  CPU_S5 dq 0 ; CPU Register R21/S5
+  CPU_S6 dq 0 ; CPU Register R22/S6
+  CPU_S7 dq 0 ; CPU Register R23/S7
+  CPU_T8 dq 0 ; CPU Register R24/T8
+  CPU_T9 dq 0 ; CPU Register R25/T9
+  CPU_K0 dq 0 ; CPU Register R26/K0
+  CPU_K1 dq 0 ; CPU Register R27/K1
+  CPU_GP dq 0 ; CPU Register R28/GP
+  CPU_SP dq 0 ; CPU Register R29/SP
+  CPU_S8 dq 0 ; CPU Register R30/S8
+  CPU_RA dq 0 ; CPU Register R31/RA
   CPU_LO dq 0 ; CPU Register LO
   CPU_HI dq 0 ; CPU Register HI
+
+  ; CPU System Registers (Coprocessor 0)
+  CP0_Index    dd 0 ; CP0 Register R0/Index
+  CP0_Random   dd 0 ; CP0 Register R1/Random
+  CP0_EntryLo0 dd 0 ; CP0 Register R2/EntryLo0
+  CP0_EntryLo1 dd 0 ; CP0 Register R3/EntryLo1
+  CP0_Context  dd 0 ; CP0 Register R4/Context
+  CP0_PageMask dd 0 ; CP0 Register R5/PageMask
+  CP0_Wired    dd 0 ; CP0 Register R6/Wired
+  CP0_R7       dd 0 ; CP0 Register R7/*RESERVED*
+  CP0_BadVAddr dd 0 ; CP0 Register R8/BadVAddr
+  CP0_Count    dd 0 ; CP0 Register R9/Count
+  CP0_EntryHi  dd 0 ; CP0 Register R10/EntryHi
+  CP0_Compare  dd 0 ; CP0 Register R11/Compare
+  CP0_Status   dd 0 ; CP0 Register R12/Status
+  CP0_Cause    dd 0 ; CP0 Register R13/Cause
+  CP0_EPC      dd 0 ; CP0 Register R14/EPC
+  CP0_PRevID   dd 0 ; CP0 Register R15/PRevID
+  CP0_Config   dd 0 ; CP0 Register R16/Config
+  CP0_LLAddr   dd 0 ; CP0 Register R17/LLAddr
+  CP0_WatchLo  dd 0 ; CP0 Register R18/WatchLo
+  CP0_WatchHi  dd 0 ; CP0 Register R19/WatchHi
+  CP0_XContext dd 0 ; CP0 Register R20/XContext
+  CP0_R21      dd 0 ; CP0 Register R21/*RESERVED*
+  CP0_R22      dd 0 ; CP0 Register R22/*RESERVED*
+  CP0_R23      dd 0 ; CP0 Register R23/*RESERVED*
+  CP0_R24      dd 0 ; CP0 Register R24/*RESERVED*
+  CP0_R25      dd 0 ; CP0 Register R25/*RESERVED*
+  CP0_PErr     dd 0 ; CP0 Register R26/PErr
+  CP0_CacheErr dd 0 ; CP0 Register R27/CacheErr
+  CP0_TagLo    dd 0 ; CP0 Register R28/TagLo
+  CP0_TagHi    dd 0 ; CP0 Register R29/TagHi
+  CP0_ErrorEPC dd 0 ; CP0 Register R30/ErrorEPC
+  CP0_R31      dd 0 ; CP0 Register R31/*RESERVED*
 
   ; FPU Registers (Coprocessor 1)
   CP1_F0  dq 0 ; CP1 Register F0
