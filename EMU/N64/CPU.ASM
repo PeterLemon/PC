@@ -332,32 +332,50 @@ CPU_DADDIU: ; Op Code 25 - I-Instruction Format: DADDIU RT,RS,Immediate - Double
   mov	   [rcx*8+CPU_R0],rbx ; RT = RBX
   jmp	   CPU_INST_EMU_END
 CPU_LDL: ; Op Code 26: I-Instruction Format: LDL RT,Offset(Base) - Load Doubleword Left
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rax,[MEM_MAP]      ; Load Doubleword
-  mov	   rdx,[rbx+rax]
-  bswap    rdx
-  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Doubleword Left
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,7	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   rax,[rax]	      ; RAX = Doubleword Left
+  bswap    rax
+  shl	   ecx,3	      ; Multiply Type By 8
+  shl	   rax,cl	      ; RT <<= CL
+  xor	   ecx,$38	      ; Flip Type
+  mov	   rdx,$00FFFFFFFFFFFFFF ; RDX = FF Byte Shifter
+  shr	   rdx,cl	      ; RDX >>= CL
+  and	   [rbx*8+CPU_R0],rdx ; RT = FF Byte Shifter (RDX)
+  or	   [rbx*8+CPU_R0],rax ; RT = Doubleword Left (RAX)
   jmp	   CPU_INST_EMU_END
 CPU_LDR: ; Op Code 27: I-Instruction Format: LDR RT,Offset(Base) - Load Doubleword Right
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rax,[MEM_MAP]      ; Load Doubleword
-  mov	   rdx,[rbx+rax]
-  bswap    rdx
-  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Doubleword (RDX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Load Doubleword Right
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,7	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   rdx,$FFFFFFFFFFFFFF00 ; RDX = FF Byte Shifter
+  shl	   ecx,3	      ; Multiply Type By 8
+  shl	   rdx,cl	      ; RDX <<= CL
+  mov	   rax,[rax]	      ; RAX = Doubleword Right
+  bswap    rax
+  xor	   ecx,$38	      ; Flip Type
+  shr	   rax,cl	      ; RT >>= CL
+  and	   [rbx*8+CPU_R0],rdx ; RT &= FF Byte Shifter (RDX)
+  or	   [rbx*8+CPU_R0],rax ; RT |= Doubleword Right (RAX)
   jmp	   CPU_INST_EMU_END
 CPU_LB: ; Op Code 32: I-Instruction Format: LB RT,Offset(Base) - Load Byte Signed
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -389,19 +407,28 @@ CPU_LH: ; Op Code 33: I-Instruction Format: LH RT,Offset(Base) Load Halfword Sig
   mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Halfword (RDX)
   jmp	   CPU_INST_EMU_END
 CPU_LWL: ; Op Code 34: I-Instruction Format: LWL RT,Offset(Base) - Load Word Left
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
   mov	   rax,[MEM_MAP]      ; Load Word Left
-  mov	   edx,[rbx+rax]
-  bswap    edx
-  movsxd   rdx,edx	      ; Sign-Extend 32-Bit Result
-  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Word Left (RDX)
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,3	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   eax,[rax]	      ; EAX = Word Left
+  bswap    eax
+  shl	   ecx,3	      ; Multiply Type By 8
+  shl	   eax,cl	      ; RT <<= CL
+  movsxd   rax,eax	      ; Sign-Extend 32-Bit Result
+  xor	   ecx,$18	      ; Flip Type
+  mov	   edx,$00FFFFFF      ; EDX = FF Byte Shifter
+  shr	   edx,cl	      ; EDX >>= CL
+  and	   [rbx*8+CPU_R0],rdx ; RT = FF Byte Shifter (RDX)
+  or	   [rbx*8+CPU_R0],rax ; RT = Word Left (RAX)
   jmp	   CPU_INST_EMU_END
 CPU_LW: ; Op Code 35: I-Instruction Format: LW RT,Offset(Base) - Load Word Signed
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -448,19 +475,30 @@ CPU_LHU: ; Op Code 37: I-Instruction Format: LHU RT,Offset(Base) - Load Halfword
   mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Unsigned Halfword (RDX)
   jmp	   CPU_INST_EMU_END
 CPU_LWR: ; Op Code 38: I-Instruction Format: LWR RT,Offset(Base) - Load Word Right
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
   mov	   rax,[MEM_MAP]      ; Load Word Right
-  mov	   edx,[rbx+rax]
-  bswap    edx
-  movsxd   rdx,edx	      ; Sign-Extend 32-Bit Result
-  mov	   [rcx*8+CPU_R0],rdx ; RT = [Immediate+RS] Word Right (RDX)
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,3	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   eax,[rax]	      ; EAX = Word Right
+  bswap    eax
+  shl	   ecx,3	      ; Multiply Type By 8
+  mov	   edx,$FFFFFF00      ; EDX = FF Byte Shifter
+  shl	   edx,cl	      ; EDX <<= CL
+  xor	   ecx,$18	      ; Flip Type
+  shr	   eax,cl	      ; RT >>= CL
+  mov	   rcx,[rbx*8+CPU_R0] ; RCX = RT
+  and	   rcx,rdx	      ; RT &= FF Byte Shifter (RDX)
+  or	   rcx,rax	      ; RT |= Word Right (RAX)
+  movsxd   rcx,ecx	      ; Sign-Extend 32-Bit Result
+  mov	   [rbx*8+CPU_R0],rcx ; Store RT
   jmp	   CPU_INST_EMU_END
 CPU_LWU: ; Op Code 39: I-Instruction Format: LHU RT,Offset(Base) - LWU RT,Offset(Base) - Load Word Unsigned
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -505,18 +543,27 @@ CPU_SH: ; Op Code 41 - I-Instruction Format: SH RT,Offset(Base) - Store Halfword
   mov	   [rbx+rax+0],ch     ; [Immediate+RS] = RT Halfword (CX)
   jmp	   CPU_INST_EMU_END
 CPU_SWL: ; Op Code 42 - I-Instruction Format: SWL RT,Offset(Base) - Store Word Left
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
-  mov	   rax,[MEM_MAP]      ; Store Word
-  bswap    ecx
-  mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Store Word Left
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,3	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   rbx,[rbx*8+CPU_R0] ; RBX = RT
+  shl	   ecx,3	      ; Multiply Type By 8
+  shr	   ebx,cl	      ; RT >>= CL
+  bswap    ebx
+  xor	   ecx,$18	      ; Flip Type
+  mov	   edx,$00FFFFFF      ; EDX = FF Byte Shifter
+  shr	   edx,cl	      ; EDX >>= CL
+  and	   [rax],edx	      ; RT &= FF Byte Shifter (EDX)
+  or	   [rax],ebx	      ; [Immediate+RS] = RT Word Left (EBX)
   jmp	   CPU_INST_EMU_END
 CPU_SW: ; Op Code 43 - I-Instruction Format: SW RT,Offset(Base) - Store Word
   movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
@@ -533,46 +580,73 @@ CPU_SW: ; Op Code 43 - I-Instruction Format: SW RT,Offset(Base) - Store Word
   mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
   jmp	   CPU_INST_EMU_END
 CPU_SDL: ; Op Code 44 - I-Instruction Format: SDL RT,Offset(Base) - Store Doubleword Left
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
-  mov	   rax,[MEM_MAP]      ; Store Doubleword
-  bswap    rcx
-  mov	   [rbx+rax],rcx      ; [Immediate+RS] = RT Doubleword (RCX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Store Doubleword Left
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,7	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   rbx,[rbx*8+CPU_R0] ; RBX = RT
+  shl	   ecx,3	      ; Multiply Type By 8
+  shr	   rbx,cl	      ; RT >>= CL
+  bswap    rbx
+  xor	   ecx,$38	      ; Flip Type
+  mov	   rdx,$00FFFFFFFFFFFFFF ; RDX = FF Byte Shifter
+  shr	   rdx,cl	      ; RDX >>= CL
+  and	   [rax],rdx	      ; RT &= FF Byte Shifter (RDX)
+  or	   [rax],rbx	      ; [Immediate+RS] = RT Doubleword Right (RBX)
   jmp	   CPU_INST_EMU_END
 CPU_SDR: ; Op Code 45 - I-Instruction Format: SDR RT,Offset(Base) - Store Doubleword Right
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
-  mov	   rax,[MEM_MAP]      ; Store Doubleword
-  bswap    rcx
-  mov	   [rbx+rax],rcx      ; [Immediate+RS] = RT Doubleword (RCX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Store Doubleword Right
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,7	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  mov	   rdx,$FFFFFFFFFFFFFF00 ; RDX = FF Byte Shifter
+  shl	   ecx,3	      ; Multiply Type By 8
+  shl	   rdx,cl	      ; RDX <<= CL
+  mov	   rbx,[rbx*8+CPU_R0] ; RBX = RT
+  xor	   ecx,$38	      ; Flip Type
+  shl	   rbx,cl	      ; RT <<= CL
+  bswap    rbx
+  and	   [rax],rdx	      ; RT &= FF Byte Shifter (RDX)
+  or	   [rax],rbx	      ; [Immediate+RS] = RT Doubleword Right (RBX)
   jmp	   CPU_INST_EMU_END
 CPU_SWR: ; Op Code 46 - I-Instruction Format: SWR RT,Offset(Base) - Store Word Right
-  movsx    ebx,ax	      ; EBX = Immediate (Sign-Extended 16-Bit)
-  mov	   ecx,eax	      ; ECX = Instruction
-  shr	   ecx,16	      ; ECX >>= 16
-  and	   ecx,$1F	      ; ECX = RT (5-Bit)
+  movsx    ecx,ax	      ; ECX = Immediate (Sign-Extended 16-Bit)
+  mov	   ebx,eax	      ; EBX = Instruction
+  shr	   ebx,16	      ; EBX >>= 16
+  and	   ebx,$1F	      ; EBX = RT (5-Bit)
   shr	   eax,21	      ; EAX >>= 21
   and	   eax,$1F	      ; EAX = RS (5-Bit)
-  add	   rbx,[rax*8+CPU_R0] ; RBX += RS
-  and	   ebx,$1FFFFFFF      ; EBX &= MEM_MAP Mask
-  mov	   rcx,[rcx*8+CPU_R0] ; RCX = RT
-  mov	   rax,[MEM_MAP]      ; Store Word
-  bswap    ecx
-  mov	   [rbx+rax],ecx      ; [Immediate+RS] = RT Word (ECX)
+  add	   rcx,[rax*8+CPU_R0] ; RCX += RS
+  and	   ecx,$1FFFFFFF      ; ECX &= MEM_MAP Mask
+  mov	   rax,[MEM_MAP]      ; Store Word Right
+  add	   rax,rcx	      ; RAX = MEM_MAP + Offset
+  and	   ecx,3	      ; ECX = Type
+  sub	   rax,rcx	      ; RAX = Offset - Type
+  shl	   ecx,3	      ; Multiply Type By 8
+  mov	   edx,$FFFFFF00      ; EDX = FF Byte Shifter
+  shl	   edx,cl	      ; EDX <<= CL
+  mov	   rbx,[rbx*8+CPU_R0] ; RBX = RT
+  xor	   ecx,$18	      ; Flip Type
+  shl	   ebx,cl	      ; RT <<= CL
+  bswap    ebx
+  and	   [rax],edx	      ; RT &= FF Byte Shifter (EDX)
+  or	   [rax],ebx	      ; [Immediate+RS] = RT Word Right (ECX)
   jmp	   CPU_INST_EMU_END
 CPU_CACHE: ; Op Code 47 - I-Instruction Format: CACHE OP,Offset(Base) - Cache
   jmp	   CPU_INST_EMU_END
@@ -1531,7 +1605,6 @@ CPU_RESERVED: ; CPU Op Code: Reserved
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
   mov	   edx,[CPU_PC]
   mov	   eax,edx
-  mov	   eax,[CPU_PC]
   and	   eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
   add	   rax,[MEM_MAP]
   mov	   r8d,dword[rax-4]

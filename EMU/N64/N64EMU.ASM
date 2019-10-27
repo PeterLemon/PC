@@ -1,7 +1,7 @@
 format PE64 console
 entry start
 
-DEBUG = 0
+DEBUG = 1
 
 include 'win64a.inc'
 include 'opengl.inc'

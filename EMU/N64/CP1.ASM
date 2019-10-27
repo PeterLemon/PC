@@ -934,7 +934,6 @@ CP1_RESERVED: ; CP1 Op Code: Reserved
   invoke   SetConsoleTextAttribute,[hcn],FOREGROUND_BLUE+FOREGROUND_GREEN+FOREGROUND_RED+FOREGROUND_INTENSITY+BACKGROUND_RED+BACKGROUND_INTENSITY ; HANDLE, Console Text Attribute
   mov	   edx,[CPU_PC]
   mov	   eax,edx
-  mov	   eax,[CPU_PC]
   and	   eax,$1FFFFFFF ; EAX &= MEM_MAP Mask
   add	   rax,[MEM_MAP]
   mov	   r8d,dword[rax-4]
